@@ -6,7 +6,7 @@ A lightweight companion studio for choosing how your local AI speaks: calm, play
 irreverent with optional profanity. Includes a reusable Python persona layer, local Ollama
 chat and speech through voices installed on your own computer.
 
-**Community source release · v0.1.0 · Python 3.11+ · Explicit language is opt-in**
+**Community source release · v0.1.1 · Python 3.11+ · Explicit language is opt-in**
 
 ## What you can try
 
@@ -41,7 +41,9 @@ offered; Ollama cloud aliases are excluded. See [PRIVACY.md](PRIVACY.md).
 
 Unhinged changes style, not truthfulness or authorization. It does not unlock files, accounts,
 tools or external actions. Guest/calm output includes a small profanity-pattern backstop;
-it is not a universal moderation or language-classification system. Model behavior varies.
+it is not a universal moderation or language-classification system. Model behavior varies. Repeated or unfinished answers get one bounded retry, then a clear
+error instead of being read aloud. Changing tone cancels the pending reply in the browser;
+guest mode also blocks replay of earlier Unhinged replies.
 
 ## Documentation
 

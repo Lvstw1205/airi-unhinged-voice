@@ -29,7 +29,8 @@ def request(path, body=None):
 def models():
     return [m['name'] for m in request('/api/tags').get('models', []) if isinstance(m.get('name'), str)
             and not m.get('remote_host') and not m.get('remote_model')
-            and ':cloud' not in m['name'] and not m['name'].endswith('-cloud')]
+            and ':cloud' not in m['name'] and not m['name'].endswith('-cloud')
+            and not any(term in m['name'].lower() for term in ('embed', 'bge-m3'))]
 
 
 def chat(body):
@@ -50,9 +51,18 @@ def chat(body):
     if model not in models():
         raise ValueError('설치된 로컬 모델을 선택하세요.')
     messages = [{'role': 'system', 'content': system_prompt(mode, guest)}, *clean, {'role': 'user', 'content': text}]
-    result = request('/api/chat', {'model': model, 'messages': messages, 'stream': False,
-                                  'think': False, 'options': {'num_predict': 700, 'temperature': .8}})
-    return {'text': output_text(result.get('message', {}).get('content'), mode, guest), 'mode': selected, 'model': model}
+    for attempt in range(2):
+        result = request('/api/chat', {'model': model, 'messages': messages, 'stream': False,
+                                      'think': False, 'options': {'num_predict': 400, 'temperature': .65 if not attempt else .3,
+                                                                  'repeat_penalty': 1.15 if not attempt else 1.3}})
+        try:
+            if result.get('done_reason') == 'length':
+                raise ValueError('The model reached its response limit.')
+            answer = output_text(result.get('message', {}).get('content'), mode, guest)
+            return {'text': answer, 'mode': selected, 'model': model, 'retried': bool(attempt)}
+        except ValueError:
+            if attempt:
+                raise ValueError('모델 답변이 반복되거나 완료되지 않았습니다. 다른 로컬 대화 모델을 선택해 다시 시도하세요.') from None
 
 
 class Handler(LocalHandler):

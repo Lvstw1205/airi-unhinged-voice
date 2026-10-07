@@ -34,5 +34,11 @@ def output_text(text, mode='calm', guest=False):
     selected = effective_mode(mode, guest)
     if not isinstance(text, str) or not text.strip() or len(text) > 20000:
         raise ValueError('The model did not return a usable answer.')
+    words = text.split()
+    for width in range(1, 9):
+        for start in range(max(0, len(words) - width * 6 + 1)):
+            block = words[start:start + width]
+            if all(words[start + width * n:start + width * (n + 1)] == block for n in range(1, 6)):
+                raise ValueError('The model repeated a phrase instead of completing its answer.')
     # A small deterministic backstop, not a universal language classifier.
     return PROFANITY.sub('…', text).strip() if selected != 'unhinged' else text.strip()

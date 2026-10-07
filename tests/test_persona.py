@@ -24,5 +24,16 @@ class PersonaTests(unittest.TestCase):
     def test_models_excludes_cloud_aliases(self):
         with patch.object(run,'request',return_value={'models':[{'name':'demo:1b'},{'name':'remote:cloud'},{'name':'gateway','remote_host':'https://example.test'}]}):
             self.assertEqual(run.models(),['demo:1b'])
+    def test_repeated_phrase_is_not_spoken_as_a_valid_answer(self):
+        with self.assertRaises(ValueError): persona.output_text('미안한 '*20, 'unhinged')
+        self.assertEqual(persona.output_text('힘든 날이네. 하나씩 끝내자.', 'unhinged'), '힘든 날이네. 하나씩 끝내자.')
+    def test_repetition_has_one_bounded_retry(self):
+        with patch.object(run,'models',return_value=['demo:1b']), patch.object(run,'request',side_effect=[{'message':{'content':'미안한 '*20}},{'message':{'content':'하나씩 끝내자.'}}]) as request:
+            result=run.chat({'text':'help','model':'demo:1b','mode':'unhinged'})
+        self.assertEqual(result['text'],'하나씩 끝내자.'); self.assertTrue(result['retried']); self.assertEqual(request.call_count,2)
+    def test_repeated_or_truncated_second_result_is_an_error(self):
+        with patch.object(run,'models',return_value=['demo:1b']), patch.object(run,'request',return_value={'done_reason':'length','message':{'content':'partial'}}) as request:
+            with self.assertRaises(ValueError): run.chat({'text':'help','model':'demo:1b'})
+        self.assertEqual(request.call_count,2)
 
 if __name__=='__main__': unittest.main()
